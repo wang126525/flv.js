@@ -15,9 +15,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
+// ParamSeekHandler类-param法查找处理器 将参数放到url地址上 最后返回和rang-seek一样是url，header
 class ParamSeekHandler {
-
+// _startName 搜索范围起点，_endName 搜索范围终点
     constructor(paramStart, paramEnd) {
         this._startName = paramStart;
         this._endName = paramEnd;

@@ -14,7 +14,8 @@
             <div id="streamURL">
                 <div class="url-input">
                     <label for="sURL">Stream URL:</label>
-                    <input id="sURL" type="text" value="http://127.0.0.1/flv/7182741-1.flv" />
+                    <input id="sURL" type="text" value="http://121.36.75.32:20378/live/34020000001320200003.flv?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NfbW9kZSI6IkdCMjgxODEiLCJjaGFubmVsX2lkIjoiMzQwMjAwMDAwMDEzMTAwMDAwMDEiLCJkZXZpY2VfaWQiOiIzNDAyMDAwMDAwMTMyMDIwMDAwMyIsImV4cGlyZV90aW1lIjoxNjAwNzM5MzgwLCJsaW5rX2tleSI6IjE2MDA0MjU4OTA5NjY4NjY0MjQ1WVlTdzRxOSIsInN0cmVhbV90eXBlIjowfQ.IGLz04TPtGHtkxp5h51EDPdlu2IXZaUh4ZCg-GCklrI" />
+                    <!-- <input id="sURL" type="text" value="https://yuncong.jovision.com:20378/live/10100133_1010013301000_12221S2VAC31_0_1.flv" /> -->
                     <button onclick="switch_mds()">Switch to MediaDataSource</button>
                 </div>
                 <div class="options">
@@ -22,7 +23,7 @@
                     <label for="isLive">isLive</label>
                     <input type="checkbox" id="withCredentials" onchange="saveSettings()" />
                     <label for="withCredentials">withCredentials</label>
-                    <input type="checkbox" id="hasAudio" onchange="saveSettings()" checked />
+                    <input type="checkbox" id="hasAudio" onchange="saveSettings()" />
                     <label for="hasAudio">hasAudio</label>
                     <input type="checkbox" id="hasVideo" onchange="saveSettings()" checked />
                     <label for="hasVideo">hasVideo</label>
@@ -31,7 +32,8 @@
             <div id="mediaSourceURL" class="hidden">
                 <div class="url-input">
                     <label for="msURL">MediaDataSource JsonURL:</label>
-                    <input id="msURL" type="text" value="http://127.0.0.1/flv/7182741.json" />
+                    <input id="msURL" type="text" value="http://121.36.75.32:20378/live/34020000001320200003.flv?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NfbW9kZSI6IkdCMjgxODEiLCJjaGFubmVsX2lkIjoiMzQwMjAwMDAwMDEzMTAwMDAwMDEiLCJkZXZpY2VfaWQiOiIzNDAyMDAwMDAwMTMyMDIwMDAwMyIsImV4cGlyZV90aW1lIjoxNjAwNzM5MzgwLCJsaW5rX2tleSI6IjE2MDA0MjU4OTA5NjY4NjY0MjQ1WVlTdzRxOSIsInN0cmVhbV90eXBlIjowfQ.IGLz04TPtGHtkxp5h51EDPdlu2IXZaUh4ZCg-GCklrI" />
+                    <!-- <input id="msURL" type="text" value="https://yuncong.jovision.com:20378/live/10100133_1010013301000_12221S2VAC31_0_1.flv" /> -->
                     <button onclick="switch_url()">Switch to URL</button>
                 </div>
             </div>
@@ -54,7 +56,7 @@
         <textarea name="logcatbox" class="logcatBox" rows="10" readonly></textarea>
     </div>
 
-    <script src="../dist/flv.js"></script>
+    <script src="./flv.js"></script>
     
     <script>
         var checkBoxFields = ['isLive', 'withCredentials', 'hasAudio', 'hasVideo'];
@@ -68,6 +70,7 @@
                 var xhr = new XMLHttpRequest();
                 xhr.open('GET', url, true);
                 xhr.onload = function (e) {
+                    console.log(e,"0011")
                     var mediaDataSource = JSON.parse(xhr.response);
                     flv_load_mds(mediaDataSource);
                 }
@@ -101,8 +104,19 @@
             }
             player = flvjs.createPlayer(mediaDataSource, {
                 enableWorker: false,
-                lazyLoadMaxDuration: 3 * 60,
+                // lazyLoadMaxDuration: 3 * 60,
                 seekType: 'range',
+                headers:{
+                    Range: 'bytes=0-',
+                    // Accept: '*/*',
+                    // Connection: 'keep-alive',
+                    // Origin: 'http://localhost:9990',
+                    // 'Access-Control-Request-Headers':'Range,Origin,Referer',
+                    // Referer: 'http://localhost:9990/',
+                    // 'Sec-Fetch-Mode': 'cors',
+                    // 'Sec-Fetch-Site': 'cross-site',
+                    // 'Sec-Fetch-Dest': 'empty',
+                }
             });
             player.attachMediaElement(element);
             player.load();
@@ -215,7 +229,7 @@
             mediaSourceURL = document.getElementById('mediaSourceURL');
             loadSettings();
             showVersion();
-            flv_load();
+            // flv_load();
         });
     </script>
     

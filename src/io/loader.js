@@ -17,7 +17,10 @@
  */
 
 import {NotImplementedException} from '../utils/exception.js';
-
+/**
+ * 常量-加载器状态
+ * kIdle 闲置  kConnecting 连接中  kBuffering 缓冲中  kError 出错  kComplete 完成
+*/
 export const LoaderStatus = {
     kIdle: 0,
     kConnecting: 1,
@@ -25,7 +28,9 @@ export const LoaderStatus = {
     kError: 3,
     kComplete: 4
 };
-
+/**
+ *OK 成功  EXCEPTION 其他错误  HTTP_STATUS_CODE_INVALID HTTP 状态码错误  CONNECTING_TIMEOUT 连接超时  EARLY_EOF 过早结束  UNRECOVERABLE_EARLY_EOF 不可恢复的过早结束
+ */
 export const LoaderErrors = {
     OK: 'OK',
     EXCEPTION: 'Exception',
@@ -42,12 +47,25 @@ export const LoaderErrors = {
  *     function onError(errorType: number, errorInfo: {code: number, msg: string}): void
  *     function onComplete(rangeFrom: number, rangeTo: number): void
  */
+/**
+ * 数据加载器
+ * 属性: 
+ * _type 加载器类型
+ * _status 加载器状态
+ * _needStash 是否需要暂存区
+ * _onContentLengthKnown 已知内容长度事件处理函数
+ * _onDataArrival 数据抵达事件处理函数
+ * _onError 出错事件处理函数
+ * _onComplete 完成事件处理函数
+ */
 export class BaseLoader {
 
     constructor(typeName) {
+        // 加载器类型初始化为构造函数传入的 typeName 参数，并且有对应的实例只读属性 type
         this._type = typeName || 'undefined';
+        // 加载器状态初始化为闲置状态，并且有对应的实例只读属性 status
         this._status = LoaderStatus.kIdle;
-        this._needStash = false;
+        this._needStash = false; //是否需要暂存区
         // callbacks
         this._onContentLengthKnown = null;
         this._onURLRedirect = null;
@@ -55,7 +73,9 @@ export class BaseLoader {
         this._onError = null;
         this._onComplete = null;
     }
-
+    /**
+     * 销毁加载器实例，就是将实例状态设为重置，四个事件处理函数设置为 null
+     */
     destroy() {
         this._status = LoaderStatus.kIdle;
         this._onContentLengthKnown = null;
@@ -64,7 +84,9 @@ export class BaseLoader {
         this._onError = null;
         this._onComplete = null;
     }
-
+    /**
+     * 获取加载器运行状态，根据加载器状态是连接中或者缓存中来判断
+     */
     isWorking() {
         return this._status === LoaderStatus.kConnecting || this._status === LoaderStatus.kBuffering;
     }
@@ -121,11 +143,11 @@ export class BaseLoader {
         this._onComplete = callback;
     }
 
-    // pure virtual
+    // 打开数据源开始加载，报错---延迟到子类实现
     open(dataSource, range) {
         throw new NotImplementedException('Unimplemented abstract function!');
     }
-
+    // 终止加载，报错---延迟到子类实现
     abort() {
         throw new NotImplementedException('Unimplemented abstract function!');
     }

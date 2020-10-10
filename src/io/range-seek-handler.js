@@ -15,13 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
+// RangeSeekHandler类-range法查找处理器
 class RangeSeekHandler {
-
+    // 属性：_zeroStart，搜索范围是否从 0 开始
     constructor(zeroStart) {
         this._zeroStart = zeroStart || false;
     }
-
+    // getConfig 获取搜索配置，传入 url 和 range 参数
     getConfig(url, range) {
         let headers = {};
 

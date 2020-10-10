@@ -21,6 +21,18 @@ import {BaseLoader, LoaderStatus, LoaderErrors} from './loader.js';
 import {RuntimeException} from '../utils/exception.js';
 
 // For FireFox browser which supports `xhr.responseType = 'moz-chunked-arraybuffer'`
+
+/**
+ * MozChunkedLoader类-火狐加载器
+ * 1.1 isSupported() 是否支持火狐，核心是判断 XMLHttpRequest 对象的响应类型是不是 moz-chunked-arraybuffer 
+ * TAG 实例构造器名称 
+ * _seekHandler 搜索处理函数 
+ * _needStash 需要暂存区，重写为 true 
+ * _xhr XMLHttpRequest 实例 
+ * _requestAbort 请求终止标志位，初始化为 false 
+ * _contentLength 内容长度，初始化为 null 
+ * _receivedLength 已接收长度，初始化为 0
+ */
 class MozChunkedLoader extends BaseLoader {
 
     static isSupported() {
@@ -49,7 +61,9 @@ class MozChunkedLoader extends BaseLoader {
         this._contentLength = null;
         this._receivedLength = 0;
     }
-
+    /**
+     * 销毁实例
+     */
     destroy() {
         if (this.isWorking()) {
             this.abort();
@@ -63,7 +77,11 @@ class MozChunkedLoader extends BaseLoader {
         }
         super.destroy();
     }
-
+    /**
+     * 打开数据源开始加载
+     * @param {*} dataSource 
+     * @param {*} range 
+     */
     open(dataSource, range) {
         this._dataSource = dataSource;
         this._range = range;
@@ -75,10 +93,12 @@ class MozChunkedLoader extends BaseLoader {
 
         let seekConfig = this._seekHandler.getConfig(sourceURL, range);
         this._requestURL = seekConfig.url;
-
+        // 创建请求实例
         let xhr = this._xhr = new XMLHttpRequest();
         xhr.open('GET', seekConfig.url, true);
+        // 设置响应的类型
         xhr.responseType = 'moz-chunked-arraybuffer';
+        // 对 xhr 的四个事件进行监听
         xhr.onreadystatechange = this._onReadyStateChange.bind(this);
         xhr.onprogress = this._onProgress.bind(this);
         xhr.onloadend = this._onLoadEnd.bind(this);
@@ -87,10 +107,11 @@ class MozChunkedLoader extends BaseLoader {
         // cors is auto detected and enabled by xhr
 
         // withCredentials is disabled by default
+        // 如果 dataSource 的证书属性为 true，设置 xhr 的 withCredentials 属性为 true
         if (dataSource.withCredentials) {
             xhr.withCredentials = true;
         }
-
+        // 设置请求头
         if (typeof seekConfig.headers === 'object') {
             let headers = seekConfig.headers;
 
@@ -115,11 +136,13 @@ class MozChunkedLoader extends BaseLoader {
         this._status = LoaderStatus.kConnecting;
         xhr.send();
     }
-
+    /**
+     * 终止加载
+     */
     abort() {
         this._requestAbort = true;
         if (this._xhr) {
-            this._xhr.abort();
+            this._xhr.abort();//终止xhr请求
         }
         this._status = LoaderStatus.kComplete;
     }
