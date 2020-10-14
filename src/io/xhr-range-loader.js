@@ -16,6 +16,9 @@
  * limitations under the License.
  */
 
+ /**
+  * RangeLoader类-通用的范围加载器
+  */
 import Log from '../utils/logger.js';
 import SpeedSampler from './speed-sampler.js';
 import {BaseLoader, LoaderStatus, LoaderErrors} from './loader.js';
@@ -48,23 +51,23 @@ class RangeLoader extends BaseLoader {
             128, 256, 384, 512, 768, 1024, 1536, 2048, 3072, 4096, 5120, 6144, 7168, 8192
         ];
         this._currentChunkSizeKB = 384;
-        this._currentSpeedNormalized = 0;
-        this._zeroSpeedChunkCount = 0;
+        this._currentSpeedNormalized = 0;//当前标准化的加载速率
+        this._zeroSpeedChunkCount = 0;//待加载数据块数量
 
         this._xhr = null;
-        this._speedSampler = new SpeedSampler();
+        this._speedSampler = new SpeedSampler();//速率计算器
 
         this._requestAbort = false;
-        this._waitForTotalLength = false;
-        this._totalLengthReceived = false;
+        this._waitForTotalLength = false;//是否待加载
+        this._totalLengthReceived = false;//是否全部接收
 
         this._currentRequestURL = null;
         this._currentRedirectedURL = null;
         this._currentRequestRange = null;
-        this._totalLength = null;  // size of the entire file
-        this._contentLength = null;  // Content-Length of entire request range
-        this._receivedLength = 0;  // total received bytes
-        this._lastTimeLoaded = 0;  // received bytes of current request sub-range
+        this._totalLength = null;  // size of the entire file 总长度
+        this._contentLength = null;  // Content-Length of entire request range 内容长度
+        this._receivedLength = 0;  // total received bytes 接收长度
+        this._lastTimeLoaded = 0;  // received bytes of current request sub-range 当前请求子范围的接收字节长度
     }
 
     destroy() {
@@ -95,10 +98,10 @@ class RangeLoader extends BaseLoader {
             useRefTotalLength = true;
             this._totalLength = this._dataSource.filesize;
         }
-
+        // 如果实例的已接收总长度为 0
         if (!this._totalLengthReceived && !useRefTotalLength) {
             // We need total filesize
-            this._waitForTotalLength = true;
+            this._waitForTotalLength = true;//设置是否待加载为 true
             this._internalOpen(this._dataSource, {from: 0, to: -1});
         } else {
             // We have filesize, start loading
@@ -106,7 +109,11 @@ class RangeLoader extends BaseLoader {
         }
     }
 
+    /**
+     * 加载指定范围数据
+     */
     _openSubRange() {
+        // 创建 chunkSize 为实例当前数据块大小 * 1024
         let chunkSize = this._currentChunkSizeKB * 1024;
 
         let from = this._range.from + this._receivedLength;
@@ -205,6 +212,7 @@ class RangeLoader extends BaseLoader {
             }
 
             if ((xhr.status >= 200 && xhr.status <= 299)) {
+                //  如果实例的是否待加载为 true，结束
                 if (this._waitForTotalLength) {
                     return;
                 }
@@ -225,13 +233,13 @@ class RangeLoader extends BaseLoader {
             // Ignore error response
             return;
         }
-
+        // 首次加载
         if (this._contentLength === null) {
             let openNextRange = false;
-
+            // 如果实例 是否待加载为 true
             if (this._waitForTotalLength) {
                 this._waitForTotalLength = false;
-                this._totalLengthReceived = true;
+                this._totalLengthReceived = true;//设置实例是否全部接收为 true
                 openNextRange = true;
 
                 let total = e.total;
@@ -257,11 +265,18 @@ class RangeLoader extends BaseLoader {
             }
         }
 
+        //  创建 delta 为 e.loaded 实例当前接收请求子范围
         let delta = e.loaded - this._lastTimeLoaded;
+        // 设置实例当前接收请求子范围的长度为 e.loaded
         this._lastTimeLoaded = e.loaded;
+        // 将实例速率计算器增加 delta 这么多字节
         this._speedSampler.addBytes(delta);
     }
 
+    /**
+     * 和 IOCtr 的标准化速率方法实现几乎一样
+     * @param {*} input 
+     */
     _normalizeSpeed(input) {
         let list = this._chunkSizeKBList;
         let last = list.length - 1;
@@ -297,6 +312,7 @@ class RangeLoader extends BaseLoader {
         }
 
         this._lastTimeLoaded = 0;
+        //  获取实例速率计算器中的最近一次的速率
         let KBps = this._speedSampler.lastSecondKBps;
         if (KBps === 0) {
             this._zeroSpeedChunkCount++;
@@ -307,19 +323,23 @@ class RangeLoader extends BaseLoader {
         }
 
         if (KBps !== 0) {
+            // 如果实例当前标准速率不等于标准化后的 KBps，校正实例标准速率为标准化后的 KBps，实例当前数据块大小为标准化后的 KBps
             let normalized = this._normalizeSpeed(KBps);
             if (this._currentSpeedNormalized !== normalized) {
                 this._currentSpeedNormalized = normalized;
-                this._currentChunkSizeKB = normalized;
+                this._currentChunkSizeKB = normalized;//？？？？当前块大小等于当前变准化速率？？？？？
             }
         }
-
+        // 从 e .target .response 获取 chunk
         let chunk = e.target.response;
+        
         let byteStart = this._range.from + this._receivedLength;
+        // 将实例的接收长度加上 chunk 的字节长度
         this._receivedLength += chunk.byteLength;
 
         let reportComplete = false;
 
+        // 如果实例的内容长度不为空且实例接收长度 < 实例的内容长度，调用 _openSubRange 继续加载剩下的数据
         if (this._contentLength != null && this._receivedLength < this._contentLength) {
             // continue load next chunk
             this._openSubRange();

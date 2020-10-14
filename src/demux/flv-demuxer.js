@@ -16,6 +16,9 @@
  * limitations under the License.
  */
 
+ /**
+  * FLVDemuxer类-FLV解码器
+  */
 import Log from '../utils/logger.js';
 import AMF from './amf-parser.js';
 import SPSParser from './sps-parser.js';

@@ -31,6 +31,22 @@ import {RuntimeException} from '../utils/exception.js';
  *
  * Otherwise, the ArrayBuffer will increase to a terrible size that equals final file size.
  */
+/**
+ * MSStreamLoader类-IE加载器
+ * isSupported() IE 对 XMLHttpRequest 的支持，可以查询 MSStream 相关资料了解
+ * TAG 
+ * _seekHandler 
+ * _needStash 
+ * _xhr 
+ * _reader MSStreamReader 
+ * _totalRange IE 专用总范围 
+ * _currentRange IE 专用现范围 
+ * _contentLength 
+ * _receivedLength 
+ * _bufferLimit IE 专用缓存限制，不然会溢出 
+ * _lastTimeBufferSize 上一个属性的辅助属性 
+ * _isReconnecting IE 专用重连标志位 
+ */
 class MSStreamLoader extends BaseLoader {
 
     static isSupported() {
@@ -71,7 +87,7 @@ class MSStreamLoader extends BaseLoader {
 
         this._bufferLimit = 16 * 1024 * 1024;  // 16MB
         this._lastTimeBufferSize = 0;
-        this._isReconnecting = false;
+        this._isReconnecting = false;//IE 专用重连标志位 
     }
 
     destroy() {

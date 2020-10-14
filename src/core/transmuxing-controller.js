@@ -268,9 +268,9 @@ class TransmuxingController {
             this._demuxer.onMetaDataArrived = this._onMetaDataArrived.bind(this);
             this._demuxer.onScriptDataArrived = this._onScriptDataArrived.bind(this);
 
-            this._remuxer.bindDataSource(this._demuxer
-                         .bindDataSource(this._ioctl
-            ));
+            this._remuxer.bindDataSource(this._demuxer.bindDataSource(this._ioctl));
+                         
+            
 
             this._remuxer.onInitSegment = this._onRemuxerInitSegmentArrival.bind(this);
             this._remuxer.onMediaSegment = this._onRemuxerMediaSegmentArrival.bind(this);
@@ -370,6 +370,7 @@ class TransmuxingController {
     _onRemuxerMediaSegmentArrival(type, mediaSegment) {
         if (this._pendingSeekTime != null) {
             // Media segments after new-segment cross-seeking should be dropped.
+            // 新片段交叉搜索后的媒体片段应该被删除。
             return;
         }
         this._emitter.emit(TransmuxingEvents.MEDIA_SEGMENT, type, mediaSegment);

@@ -3,7 +3,7 @@
 
 <head>
     <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
-    <title>flv.js demo</title>
+    <title>flv2.js demo</title>
     <link rel="stylesheet" type="text/css" href="demo.css" />
 </head>
 
@@ -103,8 +103,10 @@
                 }
             }
             player = flvjs.createPlayer(mediaDataSource, {
+                enableStashBuffer:false,
                 enableWorker: false,
                 // lazyLoadMaxDuration: 3 * 60,
+                autoCleanupSourceBuffer:true,
                 seekType: 'range',
                 headers:{
                     Range: 'bytes=0-',

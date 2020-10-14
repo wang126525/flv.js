@@ -17,7 +17,9 @@
  */
 
 import EventEmitter from 'events';
-
+/**
+ * 调试工具
+ */
 class Log {
 
     static e(tag, msg) {

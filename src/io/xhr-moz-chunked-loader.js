@@ -111,7 +111,7 @@ class MozChunkedLoader extends BaseLoader {
         if (dataSource.withCredentials) {
             xhr.withCredentials = true;
         }
-        // 设置请求头
+        // 设置请求头 从搜索配置那取到的header信息
         if (typeof seekConfig.headers === 'object') {
             let headers = seekConfig.headers;
 
@@ -123,6 +123,7 @@ class MozChunkedLoader extends BaseLoader {
         }
 
         // add additional headers
+        // 设置请求头 从传入的配置中设置
         if (typeof this._config.headers === 'object') {
             let headers = this._config.headers;
 
@@ -146,7 +147,10 @@ class MozChunkedLoader extends BaseLoader {
         }
         this._status = LoaderStatus.kComplete;
     }
-
+    /**
+     * readyState 属性改变事件处理函数
+     * @param {*} e 
+     */
     _onReadyStateChange(e) {
         let xhr = e.target;
 
@@ -157,7 +161,7 @@ class MozChunkedLoader extends BaseLoader {
                     this._onURLRedirect(redirectedURL);
                 }
             }
-
+            // 如果请求报错
             if (xhr.status !== 0 && (xhr.status < 200 || xhr.status > 299)) {
                 this._status = LoaderStatus.kError;
                 if (this._onError) {
@@ -166,26 +170,32 @@ class MozChunkedLoader extends BaseLoader {
                     throw new RuntimeException('MozChunkedLoader: Http code invalid, ' + xhr.status + ' ' + xhr.statusText);
                 }
             } else {
+                // 否则 改变状态为缓冲中
                 this._status = LoaderStatus.kBuffering;
             }
         }
     }
-
+    /**
+     *  进度事件处理函数
+     * @param {*} e 
+     */
     _onProgress(e) {
+        // 报错就退出
         if (this._status === LoaderStatus.kError) {
             // Ignore error response
             return;
         }
-
+        // 初始时执行一次
         if (this._contentLength === null) {
             if (e.total !== null && e.total !== 0) {
-                this._contentLength = e.total;
+                this._contentLength = e.total;//设置实例的内容长度为 e.total
+                // 如果实例存在已知内容长度事件处理函数，执行之，传入实例的内容长度
                 if (this._onContentLengthKnown) {
                     this._onContentLengthKnown(this._contentLength);
                 }
             }
         }
-
+        // 和fetch一样处理数据 并传给_onDataArrival函数
         let chunk = e.target.response;
         let byteStart = this._range.from + this._receivedLength;
         this._receivedLength += chunk.byteLength;
@@ -194,7 +204,10 @@ class MozChunkedLoader extends BaseLoader {
             this._onDataArrival(chunk, byteStart, this._receivedLength);
         }
     }
-
+    /**
+     * 加载停止事件处理函数
+     * @param {*} e 
+     */
     _onLoadEnd(e) {
         if (this._requestAbort === true) {
             this._requestAbort = false;
@@ -202,18 +215,21 @@ class MozChunkedLoader extends BaseLoader {
         } else if (this._status === LoaderStatus.kError) {
             return;
         }
-
+        // 状态改为完成
         this._status = LoaderStatus.kComplete;
         if (this._onComplete) {
             this._onComplete(this._range.from, this._range.from + this._receivedLength - 1);
         }
     }
-
+    /**
+     * 出错事件处理函数
+     * @param {*} e 
+     */
     _onXhrError(e) {
         this._status = LoaderStatus.kError;
         let type = 0;
         let info = null;
-
+        // 过早结束错误
         if (this._contentLength && e.loaded < this._contentLength) {
             type = LoaderErrors.EARLY_EOF;
             info = {code: -1, msg: 'Moz-Chunked stream meet Early-Eof'};
