@@ -235,6 +235,7 @@ class FetchStreamLoader extends BaseLoader {
 
                 // 给实例的接收长度加上 result.value.buffer 的字节长度
                 let chunk = result.value.buffer;
+                console.log('result.value.buffer',chunk);
                 let byteStart = this._range.from + this._receivedLength;
                 this._receivedLength += chunk.byteLength;
 

@@ -477,6 +477,7 @@ class MSEController {
         Log.v(this.TAG, 'MediaSource onSourceOpen');
         this._mediaSource.removeEventListener('sourceopen', this.e.onSourceOpen);
         // deferred sourcebuffer creation / initialization
+        // 延迟sourcebuffer创建/初始化
         if (this._pendingSourceBufferInit.length > 0) {
             let pendings = this._pendingSourceBufferInit;
             while (pendings.length) {
@@ -485,6 +486,7 @@ class MSEController {
             }
         }
         // there may be some pending media segments, append them
+        // 可能有一些挂起的媒体段，将它们追加
         if (this._hasPendingSegments()) {
             this._doAppendSegments();
         }

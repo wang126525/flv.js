@@ -37,6 +37,7 @@ class TransmuxingController {
         this._config = config;
 
         // treat single part media as multipart media, which has only one segment
+        // 将单部分媒体视为只有一个分段的多部分媒体
         if (!mediaDataSource.segments) {
             mediaDataSource.segments = [{
                 duration: mediaDataSource.duration,
@@ -46,6 +47,7 @@ class TransmuxingController {
         }
 
         // fill in default IO params if not exists
+        // 如果不存在，请填写默认的IO参数
         if (typeof mediaDataSource.cors !== 'boolean') {
             mediaDataSource.cors = true;
         }
@@ -59,9 +61,11 @@ class TransmuxingController {
 
         this._mediaDataSource.segments.forEach((segment) => {
             // timestampBase for each segment, and calculate total duration
+            // 每个段的timestampBase，并计算总持续时间
             segment.timestampBase = totalDuration;
             totalDuration += segment.duration;
             // params needed by IOController
+            // IOController需要的参数
             segment.cors = mediaDataSource.cors;
             segment.withCredentials = mediaDataSource.withCredentials;
             // referrer policy control, if exist
@@ -182,12 +186,14 @@ class TransmuxingController {
             if (segmentInfo == undefined) {
                 // current segment loading started, but mediainfo hasn't received yet
                 // wait for the metadata loaded, then seek to expected position
+                // 当前段加载已经开始，但是mediainfo还没有收到   等待元数据加载，然后寻找到预期的位置
                 this._pendingSeekTime = milliseconds;
             } else {
                 let keyframe = segmentInfo.getNearestKeyframe(milliseconds);
                 this._remuxer.seek(keyframe.milliseconds);
                 this._ioctl.seek(keyframe.fileposition);
                 // Will be resolved in _onRemuxerMediaSegmentArrival()
+                // 将在_onRemuxerMediaSegmentArrival()中解析
                 this._pendingResolveSeekPoint = keyframe.milliseconds;
             }
         } else {
@@ -196,14 +202,18 @@ class TransmuxingController {
 
             if (targetSegmentInfo == undefined) {
                 // target segment hasn't been loaded. We need metadata then seek to expected time
+                // 目标段尚未加载。我们需要元数据，然后寻找预期的时间
                 this._pendingSeekTime = milliseconds;
                 this._internalAbort();
                 this._remuxer.seek();
                 this._remuxer.insertDiscontinuity();
                 this._loadSegment(targetSegmentIndex);
                 // Here we wait for the metadata loaded, then seek to expected position
+                // 在这里，我们等待元数据加载，然后寻找到预期的位置
             } else {
                 // We have target segment's metadata, direct seek to target position
+                // 我们有目标细分的元数据，直接寻找目标位置
+                
                 let keyframe = targetSegmentInfo.getNearestKeyframe(milliseconds);
                 this._internalAbort();
                 this._remuxer.seek(milliseconds);
@@ -235,7 +245,7 @@ class TransmuxingController {
     _onInitChunkArrival(data, byteStart) {
         let probeData = null;
         let consumed = 0;
-
+        // debugger
         if (byteStart > 0) {
             // IOController seeked immediately after opened, byteStart > 0 callback may received
             this._demuxer.bindDataSource(this._ioctl);
