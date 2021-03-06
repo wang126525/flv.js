@@ -14,7 +14,7 @@
             <div id="streamURL">
                 <div class="url-input">
                     <label for="sURL">Stream URL:</label>
-                    <input id="sURL" type="text" value="http://121.36.75.32:20378/live/34020000001320200003.flv?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NfbW9kZSI6IkdCMjgxODEiLCJjaGFubmVsX2lkIjoiMzQwMjAwMDAwMDEzMTAwMDAwMDEiLCJkZXZpY2VfaWQiOiIzNDAyMDAwMDAwMTMyMDIwMDAwMyIsImV4cGlyZV90aW1lIjoxNjAwNzM5MzgwLCJsaW5rX2tleSI6IjE2MDA0MjU4OTA5NjY4NjY0MjQ1WVlTdzRxOSIsInN0cmVhbV90eXBlIjowfQ.IGLz04TPtGHtkxp5h51EDPdlu2IXZaUh4ZCg-GCklrI" />
+                    <input id="sURL" type="text" value="http://hflv.cloudsee.com:20378/live/12421SSKDJH8.flv?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NfbW9kZSI6IlB1YmxpY0Nsb3VkIiwiY2hhbm5lbF9pZCI6MCwiZGV2aWNlX2lkIjoiMTI0MjFTU0tESkg4IiwiZXhwaXJlX3RpbWUiOjE2MTQ5ODI5MDAsInN0cmVhbV90eXBlIjowfQ.DI4dmff9p_nS8rJk6KhFxnSHlE5zNbob8wBm9wfLN2w" />
                     <!-- <input id="sURL" type="text" value="https://yuncong.jovision.com:20378/live/10100133_1010013301000_12221S2VAC31_0_1.flv" /> -->
                     <button onclick="switch_mds()">Switch to MediaDataSource</button>
                 </div>
@@ -32,7 +32,7 @@
             <div id="mediaSourceURL" class="hidden">
                 <div class="url-input">
                     <label for="msURL">MediaDataSource JsonURL:</label>
-                    <input id="msURL" type="text" value="http://121.36.75.32:20378/live/34020000001320200003.flv?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NfbW9kZSI6IkdCMjgxODEiLCJjaGFubmVsX2lkIjoiMzQwMjAwMDAwMDEzMTAwMDAwMDEiLCJkZXZpY2VfaWQiOiIzNDAyMDAwMDAwMTMyMDIwMDAwMyIsImV4cGlyZV90aW1lIjoxNjAwNzM5MzgwLCJsaW5rX2tleSI6IjE2MDA0MjU4OTA5NjY4NjY0MjQ1WVlTdzRxOSIsInN0cmVhbV90eXBlIjowfQ.IGLz04TPtGHtkxp5h51EDPdlu2IXZaUh4ZCg-GCklrI" />
+                    <input id="msURL" type="text" value="http://hflv.cloudsee.com:20378/live/12421SSKDJH8.flv?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NfbW9kZSI6IlB1YmxpY0Nsb3VkIiwiY2hhbm5lbF9pZCI6MCwiZGV2aWNlX2lkIjoiMTI0MjFTU0tESkg4IiwiZXhwaXJlX3RpbWUiOjE2MTQ5ODI5MDAsInN0cmVhbV90eXBlIjowfQ.DI4dmff9p_nS8rJk6KhFxnSHlE5zNbob8wBm9wfLN2w" />
                     <!-- <input id="msURL" type="text" value="https://yuncong.jovision.com:20378/live/10100133_1010013301000_12221S2VAC31_0_1.flv" /> -->
                     <button onclick="switch_url()">Switch to URL</button>
                 </div>
@@ -191,7 +191,6 @@
             var sURL = document.getElementById('sURL');
             ls_set('msURL', msURL.value);
             ls_set('sURL', sURL.value);
-            console.log('save');
         }
 
         function loadSettings() {

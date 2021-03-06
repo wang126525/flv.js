@@ -107,6 +107,9 @@ class MSEController {
 
         this._mediaElement = mediaElement;
         this._mediaSourceObjectURL = window.URL.createObjectURL(this._mediaSource);
+        console.log(this._mediaSourceObjectURL,"************_mediaSourceObjectURL**************");
+        console.log(this._mediaSource.sourceBuffers,"************sourceBuffers**************");
+        console.log(this._mediaSource.activeSourceBuffers,"************activeSourceBuffers**************");
         mediaElement.src = this._mediaSourceObjectURL;
     }
 
@@ -164,32 +167,41 @@ class MSEController {
             this._mediaSourceObjectURL = null;
         }
     }
-
+    // 保存初始化时sourceopen前生成的片段 需要保存到this._pendingSourceBufferInit数组中，初始化完成后取出
+    // initSegment
+    // {codec: "avc1.4d0015",
+    // container: "video/mp4",
+    // data: ArrayBuffer(645) {},
+    // mediaDuration: 0,
+    // type: "video"}
     appendInitSegment(initSegment, deferred) {
+        console.log(initSegment,"**********appendInitSegment***********");
         if (!this._mediaSource || this._mediaSource.readyState !== 'open') {
             // sourcebuffer creation requires mediaSource.readyState === 'open'
             // so we defer the sourcebuffer creation, until sourceopen event triggered
             this._pendingSourceBufferInit.push(initSegment);
             // make sure that this InitSegment is in the front of pending segments queue
+            // 分别按照音频 视频存储片段
             this._pendingSegments[initSegment.type].push(initSegment);
             return;
         }
 
         let is = initSegment;
-        let mimeType = `${is.container}`;
+        let mimeType = `${is.container}`;// video/mp4  audio/mp4
         if (is.codec && is.codec.length > 0) {
             mimeType += `;codecs=${is.codec}`;
         }
-
+        // 假设不是第一次创建sourcebuffer
         let firstInitSegment = false;
 
         Log.v(this.TAG, 'Received Initialization Segment, mimeType: ' + mimeType);
         this._lastInitSegments[is.type] = is;
 
         if (mimeType !== this._mimeTypes[is.type]) {
-            if (!this._mimeTypes[is.type]) {  // empty, first chance create sourcebuffer
+            if (!this._mimeTypes[is.type]) {  //为null 是为_sourceBuffers中的video和audio第一次创建sourcebuffer
                 firstInitSegment = true;
                 try {
+                    // 创建并绑定事件
                     let sb = this._sourceBuffers[is.type] = this._mediaSource.addSourceBuffer(mimeType);
                     sb.addEventListener('error', this.e.onSourceBufferError);
                     sb.addEventListener('updateend', this.e.onSourceBufferUpdateEnd);
@@ -223,6 +235,7 @@ class MSEController {
     }
 
     appendMediaSegment(mediaSegment) {
+        console.log(mediaSegment,"**********appendMediaSegment***********");
         let ms = mediaSegment;
         this._pendingSegments[ms.type].push(ms);
 
@@ -478,6 +491,7 @@ class MSEController {
         this._mediaSource.removeEventListener('sourceopen', this.e.onSourceOpen);
         // deferred sourcebuffer creation / initialization
         // 延迟sourcebuffer创建/初始化
+        console.log(this._pendingSourceBufferInit,"*****************_pendingSourceBufferInit******************");
         if (this._pendingSourceBufferInit.length > 0) {
             let pendings = this._pendingSourceBufferInit;
             while (pendings.length) {
