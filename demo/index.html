@@ -52,6 +52,7 @@
             <button onclick="flv_destroy()">Destroy</button>
             <input style="width:100px" type="text" name="seekpoint"/>
             <button onclick="flv_seekto()">SeekTo</button>
+            <button onclick="removerange()">removerange</button>
         </div>
         <textarea name="logcatbox" class="logcatBox" rows="10" readonly></textarea>
     </div>
@@ -123,7 +124,9 @@
             player.attachMediaElement(element);
             player.load();
         }
-
+        function removerange(){
+            player.removerange();
+        }
         function flv_start() {
             player.play();
         }

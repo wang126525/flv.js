@@ -597,7 +597,7 @@ class MP4Remuxer {
             segment.timestampOffset = firstDts;
         }
 
-        this._onMediaSegment('audio', segment);
+        this._onMediaSegment('audio', segment);  //推送到mediaSource 中间通过event监听在flv-player.js和transmuxing-controller.js ，最终在mse-controller.js塞到MediaSource里面播放
     }
     /**
      * 视频编码
@@ -791,7 +791,7 @@ class MP4Remuxer {
         let moofbox = MP4.moof(track, firstDts);
         track.samples = [];
         track.length = 0;
-
+        // 将数据塞到MediaSource
         this._onMediaSegment('video', {
             type: 'video',
             data: this._mergeBoxes(moofbox, mdatbox).buffer,

@@ -272,7 +272,7 @@ class IOController {
         let config = this._config;
         // 根据实例的配置的搜索类型，从三种：range、param、custom 处理函数选择一个
         // 如果搜索类型是 range，实例化一个 RangeSeekHandler 赋给实例的搜索处理函数，传入实例配置的范围是否从零开始属性
-        if (config.seekType === 'range') {
+        if (config.seekType === 'range') {// 默认
             this._seekHandler = new RangeSeekHandler(this._config.rangeLoadZeroStart);
         } else if (config.seekType === 'param') {
             // 初始化参数起点，为实例配置的参数起点值或 bstart
@@ -326,7 +326,9 @@ class IOController {
         // 将实例的加载器的事件处理函数和实例的事件处理函数关联起来
         this._loader.onContentLengthKnown = this._onContentLengthKnown.bind(this);
         this._loader.onURLRedirect = this._onURLRedirect.bind(this);
+        // 录取到数据流 就通过该方传出
         this._loader.onDataArrival = this._onLoaderChunkArrival.bind(this);
+        // 监听拉流结束
         this._loader.onComplete = this._onLoaderComplete.bind(this);
         this._loader.onError = this._onLoaderError.bind(this);
     }
@@ -344,7 +346,7 @@ class IOController {
         if (!optionalFrom) {
             this._fullRequestFlag = true;
         }
-        // 打开当前实例的加载器
+        // 打开当前实例的加载器 开始请求
         this._loader.open(this._dataSource, Object.assign({}, this._currentRange));
     }
 
@@ -562,6 +564,7 @@ class IOController {
         // 将实例的当前范围的终点设置为数据起点 + 数据块大小 - 1
         this._currentRange.to = byteStart + chunks.byteLength - 1;
         // 调用实例的数据到达事件处理函数
+        // 该函数的实现 在transmuxing-controller.js的_loadSegment方法内赋值
         return this._onDataArrival(chunks, byteStart);
     }
 
@@ -582,7 +585,12 @@ class IOController {
         }
     }
 
-    // 处理数据到达事件
+    /**
+     * 处理数据到达事件
+     * @param {*} chunk buffer数据块
+     * @param {*} byteStart 从哪个位置开始写入 相对于总的接收的数据
+     * @param {*} receivedLength 写入的数据块长度
+     */
     _onLoaderChunkArrival(chunk, byteStart, receivedLength) {
         // 如果实例没有处理数据到达事件的函数，报错
         if (!this._onDataArrival) {
@@ -614,9 +622,9 @@ class IOController {
                 this._adjustStashSize(normalized);
             }
         }
-        // 如果实例的允许暂存区为 false
+        // 如果实例的允许暂存区为 false    暂存开启后则暂存满才发送数据解码
         if (!this._enableStash) {  // disable stash
-            // 如果实例的已使用暂存区为空
+            // 如果实例的已使用暂存区为空  第一次来数据 消耗的数据没有刚好用完就暂存起来等待下次来数据合并后再次推送 消耗_dispatchChunks(chunk, byteStart)
             if (this._stashUsed === 0) {
                 // dispatch chunk directly to consumer;
                 // check ret value (consumed bytes) and stash unconsumed to stashBuffer
@@ -632,11 +640,11 @@ class IOController {
                     }
                     // 创建暂存区数组，Uint8Array 类型，指向实例的暂存区缓存，起点为 0，长度为实例的缓存大小
                     let stashArray = new Uint8Array(this._stashBuffer, 0, this._bufferSize);
-                    // 创建已消费数组，Uint8Array 类型，指向 chunk，起点为已消费长度，拷贝到暂存区数组里去
+                    // 创建已消费数组，Uint8Array 类型，指向 chunk，起点为已消费长度，拷贝到暂存区数组里去  将剩下的数据暂存起来
                     stashArray.set(new Uint8Array(chunk, consumed), 0);
-                    // 将实例的已使用暂存区长度加上剩余长度
+                    // 将实例的已使用暂存区长度加上剩余长度  暂存使用的长度就是剩下的长度
                     this._stashUsed += remain;
-                    // 设置暂存区起点为 byteStart + 已消费长度
+                    // 设置暂存区起点为 byteStart + 已消费长度  更新下次使用的byteStart起点 _stashByteStart
                     this._stashByteStart = byteStart + consumed;
                 }
             } else {

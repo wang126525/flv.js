@@ -120,7 +120,7 @@ class TransmuxingController {
     off(event, listener) {
         this._emitter.removeListener(event, listener);
     }
-
+    // 开始加载数据 拉流
     start() {
         this._loadSegment(0);
         this._enableStatisticsReporter();
@@ -129,7 +129,7 @@ class TransmuxingController {
     _loadSegment(segmentIndex, optionalFrom) {
         this._currentSegmentIndex = segmentIndex;
         let dataSource = this._mediaDataSource.segments[segmentIndex];
-
+        //  实例化IOController 处理flv数据流的拉取  构造函数里执行了选择搜索处理函数、选择加载器、创建加载器的操作
         let ioctl = this._ioctl = new IOController(dataSource, this._config, segmentIndex);
         ioctl.onError = this._onIOException.bind(this);
         ioctl.onSeeked = this._onIOSeeked.bind(this);
@@ -140,6 +140,7 @@ class TransmuxingController {
         if (optionalFrom) {
             this._demuxer.bindDataSource(this._ioctl);
         } else {
+            // 第一次得到数据时 绑定数据源下载传输的函数 比如fetch-stream-loader.js里面请求的数据就通过这个方法导出 
             ioctl.onDataArrival = this._onInitChunkArrival.bind(this);
         }
 
@@ -241,7 +242,11 @@ class TransmuxingController {
         }
         return idx;
     }
-
+    /**
+     * flv数据解析
+     * @param {*} data 
+     * @param {*} byteStart 
+     */
     _onInitChunkArrival(data, byteStart) {
         let probeData = null;
         let consumed = 0;
@@ -273,15 +278,21 @@ class TransmuxingController {
 
             this._demuxer.timestampBase = mds.segments[this._currentSegmentIndex].timestampBase;
 
+            // 给解码器绑定系列方法 得到解码后的数据
             this._demuxer.onError = this._onDemuxException.bind(this);
+            // 监听媒体信息的解析 包含scriptData video audio 里面的信息 更新信息
             this._demuxer.onMediaInfo = this._onMediaInfo.bind(this);
+            // 将解析的数据抛出 onMetaData 在scriptData里面
             this._demuxer.onMetaDataArrived = this._onMetaDataArrived.bind(this);
+            // 解析scriptData数据的回调 并将解析后的scriptData数据抛出
             this._demuxer.onScriptDataArrived = this._onScriptDataArrived.bind(this);
-
+            // this._demuxer.bindDataSource(this._ioctl) 返回的是当前的解码器实例 this._demuxer 解码器内会调用回调方法将解码完的数据作为参数传入
+            // 核心 该回调在MP4-remuxer.js中实现 onDataAvailable音视频帧数据 this._onDataAvailable(this._audioTrack, this._videoTrack);  onTrackMetadata音视频元数据 this._onTrackMetadata('audio', meta);
             this._remuxer.bindDataSource(this._demuxer.bindDataSource(this._ioctl));
-                         
-            
 
+
+
+            // 核心 绑定通过 MP4编码后的数据回调  并通过回调将编码后的MP4数据抛给mse-controller.js 塞到MediaSource中 播放
             this._remuxer.onInitSegment = this._onRemuxerInitSegmentArrival.bind(this);
             this._remuxer.onMediaSegment = this._onRemuxerMediaSegmentArrival.bind(this);
 

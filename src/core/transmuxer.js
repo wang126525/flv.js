@@ -99,6 +99,7 @@ class Transmuxer {
         if (this._worker) {
             this._worker.postMessage({cmd: 'start'});
         } else {
+            // 开始加载数据  拉流
             this._controller.start();
         }
     }

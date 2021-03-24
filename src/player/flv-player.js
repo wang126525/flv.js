@@ -28,6 +28,12 @@ import {ErrorTypes, ErrorDetails} from './player-errors.js';
 import {createDefaultConfig} from '../config.js';
 import {InvalidArgumentException, IllegalStateException} from '../utils/exception.js';
 
+
+// 所以这个文件相当于入口文件
+
+// 1、执行 new FlvPlayer 产生一个player实例；
+// 2、主动调用 attachMediaElement  load 方法；开启flv播放之旅；
+// ...
 class FlvPlayer {
 
     constructor(mediaDataSource, config) {
@@ -127,7 +133,7 @@ class FlvPlayer {
     off(event, listener) {
         this._emitter.removeListener(event, listener);
     }
-
+    // 绑定video标签 监听video的一些原生事件
     attachMediaElement(mediaElement) {
         this._mediaElement = mediaElement;
         mediaElement.addEventListener('loadedmetadata', this.e.onvLoadedMetadata);
@@ -135,7 +141,7 @@ class FlvPlayer {
         mediaElement.addEventListener('canplay', this.e.onvCanPlay);
         mediaElement.addEventListener('stalled', this.e.onvStalled);
         mediaElement.addEventListener('progress', this.e.onvProgress);
-
+        // 创建 MSEController实例 为了创建 medioSource实例 和 为其绑定上监听
         this._msectl = new MSEController(this._config);
 
         this._msectl.on(MSEEvents.UPDATE_END, this._onmseUpdateEnd.bind(this));
@@ -146,6 +152,8 @@ class FlvPlayer {
                 this._hasPendingLoad = false;
                 this.load();
             }
+
+            // 最后主动调用的load方法
         });
         this._msectl.on(MSEEvents.ERROR, (info) => {
             this._emitter.emit(PlayerEvents.ERROR,
@@ -154,7 +162,7 @@ class FlvPlayer {
                                info
             );
         });
-
+        // 产生medioSource实例 并给实例绑定上对应的监听 sourceopen sourceended sourceclose
         this._msectl.attachMediaElement(mediaElement);
 
         if (this._pendingSeekTime != null) {
@@ -206,11 +214,14 @@ class FlvPlayer {
             this._mediaElement.currentTime = 0;
         }
 
+        // 核心
+        // 实例化 Transmuxer 处理flv数据的解析后数据的传递 和解析后的数据转换成MP4返回 通过event事件
         this._transmuxer = new Transmuxer(this._mediaDataSource, this._config);
-
+        // 监听 MediaSource 接收 媒体数据初始化数据的到来
         this._transmuxer.on(TransmuxingEvents.INIT_SEGMENT, (type, is) => {
             this._msectl.appendInitSegment(is);
         });
+        // 监听来自transmuxing-conmtroller.js触发的数据来源，数据的源头在mp4-remuxer.js的一个_onMediaSegment上 也就是编码后的数据
         this._transmuxer.on(TransmuxingEvents.MEDIA_SEGMENT, (type, ms) => {
             this._msectl.appendMediaSegment(ms);
 
@@ -220,6 +231,7 @@ class FlvPlayer {
                 if (ms.info.endDts >= (currentTime + this._config.lazyLoadMaxDuration) * 1000) {
                     if (this._progressChecker == null) {
                         Log.v(this.TAG, 'Maximum buffering duration exceeded, suspend transmuxing task');
+                        // 暂停编码
                         this._suspendTransmuxer();
                     }
                 }
@@ -259,6 +271,7 @@ class FlvPlayer {
             }
         });
 
+        // 开始flv2MP4转换
         this._transmuxer.open();
     }
 
@@ -283,6 +296,37 @@ class FlvPlayer {
     pause() {
         this._mediaElement.pause();
     }
+
+
+    removerange(){
+        let sourceBuffers = this._msectl._sourceBuffers;
+        let _mediaElement = this._msectl._mediaElement;
+        let _mediaSource = this._msectl._mediaSource;
+        console.log(_mediaElement.currentTime,"duration");
+        let rangevideo  = sourceBuffers.video;
+        let rangeaudio  = sourceBuffers.audio;
+            if(rangevideo.buffered.length>0&&rangeaudio.buffered.length>0){
+                let rangevideostart = rangevideo.buffered.start(0);
+                let rangevideoend = rangevideo.buffered.end(0);
+                let rangeaudiostart = rangeaudio.buffered.start(0);
+                let rangeaudioend = rangeaudio.buffered.end(0);
+                console.log("_sourceBuffers rangevideo",rangevideostart,rangevideoend);
+                console.log("_sourceBuffers rangeaudio",rangeaudiostart,rangeaudioend);
+                // if(!rangevideo.updating){
+                //     console.log("remove");
+                //     rangevideo.remove(rangevideoend-10, rangevideoend-3);
+                    
+                // }
+                // if(!rangeaudio.updating){
+                //     console.log("remove");
+                //     rangeaudio.remove(rangeaudioend-10, rangeaudioend-3);
+                // }
+                // 需要sourceBuffer的updating为false
+                _mediaSource.duration = rangevideoend;
+                _mediaElement.currentTime = rangevideoend-1;
+            }
+    }
+
 
     get type() {
         return this._type;

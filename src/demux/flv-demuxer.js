@@ -70,8 +70,8 @@ class FLVDemuxer {
         this._hasAudioFlagOverrided = false;
         this._hasVideoFlagOverrided = false;
 
-        this._audioInitialMetadataDispatched = false;
-        this._videoInitialMetadataDispatched = false;
+        this._audioInitialMetadataDispatched = false; //判断音频信息是否已被解析 只有音视频都解析完才将mediaInfo传出 this._onMediaInfo(mi);
+        this._videoInitialMetadataDispatched = false; //判断视频信息是否已被解析 只有音视频都解析完才将mediaInfo传出 this._onMediaInfo(mi);
 
         this._mediaInfo = new MediaInfo();
         this._mediaInfo.hasAudio = this._hasAudio;
@@ -267,7 +267,7 @@ class FLVDemuxer {
         return false;
     }
 
-    // function parseChunks(chunk: ArrayBuffer, byteStart: number): number;
+    // 解码 入口 返回已解析的数据长度 
     parseChunks(chunk, byteStart) {
         if (!this._onError || !this._onMediaInfo || !this._onTrackMetadata || !this._onDataAvailable) {
             throw new IllegalStateException('Flv: onError & onMediaInfo & onTrackMetadata & onDataAvailable callback must be specified');
@@ -358,7 +358,7 @@ class FLVDemuxer {
             offset += 11 + dataSize + 4;  // tagBody + dataSize + prevTagSize
         }
 
-        // dispatch parsed frames to consumer (typically, the remuxer)
+        // 只有上传音视频的元信息后mimetype数据后才可以传输帧数据 为了让MediaSource完成初始化
         if (this._isInitialMetadataDispatched()) {
             if (this._dispatch && (this._audioTrack.length || this._videoTrack.length)) {
                 this._onDataAvailable(this._audioTrack, this._videoTrack);
@@ -545,12 +545,13 @@ class FLVDemuxer {
                 meta.refSampleDuration = 1024 / meta.audioSampleRate * meta.timescale;
                 Log.v(this.TAG, 'Parsed AudioSpecificConfig');
 
-                if (this._isInitialMetadataDispatched()) {
+                if (this._isInitialMetadataDispatched()) {//至此，音视频数据都解析完了 可以将帧数据传出
                     // Non-initial metadata, force dispatch (or flush) parsed frames to remuxer
                     if (this._dispatch && (this._audioTrack.length || this._videoTrack.length)) {
                         this._onDataAvailable(this._audioTrack, this._videoTrack);
                     }
                 } else {
+                    // 标识音频信息解析完
                     this._audioInitialMetadataDispatched = true;
                 }
                 // then notify new metadata
@@ -568,7 +569,7 @@ class FLVDemuxer {
                 } else {
                     mi.mimeType = 'video/x-flv; codecs="' + mi.audioCodec + '"';
                 }
-                if (mi.isComplete()) {
+                if (mi.isComplete()) { //至此，音视频信息都解析完了 可以将mime数据传出  判断是根据是否有音频或视频，然后有对应的mime信息
                     this._onMediaInfo(mi);
                 }
             } else if (aacData.packetType === 1) {  // AAC raw frame data

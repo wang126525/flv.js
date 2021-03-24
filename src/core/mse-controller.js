@@ -45,22 +45,22 @@ class MSEController {
             onSourceBufferUpdateEnd: this._onSourceBufferUpdateEnd.bind(this)
         };
 
-        this._mediaSource = null;
-        this._mediaSourceObjectURL = null;
-        this._mediaElement = null;
+        this._mediaSource = null; //媒体资源
+        this._mediaSourceObjectURL = null;//生成的传给video标签的url blob:http://localhost:8000/75982cc5-5b32-4de2-b5b8-aa572a4065db
+        this._mediaElement = null; //video标签element
 
-        this._isBufferFull = false;
-        this._hasPendingEos = false;
+        this._isBufferFull = false; //是否缓存满
+        this._hasPendingEos = false; //
 
         this._requireSetMediaDuration = false;
         this._pendingMediaDuration = 0;
 
-        this._pendingSourceBufferInit = [];
-        this._mimeTypes = {
-            video: null,
-            audio: null
+        this._pendingSourceBufferInit = []; //在mediasource开启之前缓存的数据流
+        this._mimeTypes = { //媒体类型
+            video: null, //"video/mp4"
+            audio: null // audio/mp4
         };
-        this._sourceBuffers = {
+        this._sourceBuffers = { //当前正在使用的的所有数据队列
             video: null,
             audio: null
         };
@@ -68,7 +68,7 @@ class MSEController {
             video: null,
             audio: null
         };
-        this._pendingSegments = {
+        this._pendingSegments = { // 另外一个缓存队列   后面会转到_sourceBuffers集合
             video: [],
             audio: []
         };
@@ -77,8 +77,11 @@ class MSEController {
             audio: []
         };
         this._idrList = new IDRSampleList();
-    }
 
+
+        this.firstDuration = true;
+    }
+    // 绑定事件
     destroy() {
         if (this._mediaElement || this._mediaSource) {
             this.detachMediaElement();
@@ -95,7 +98,7 @@ class MSEController {
     off(event, listener) {
         this._emitter.removeListener(event, listener);
     }
-
+    // 创建  MediaSource
     attachMediaElement(mediaElement) {
         if (this._mediaSource) {
             throw new IllegalStateException('MediaSource has been attached to an HTMLMediaElement!');
@@ -112,7 +115,7 @@ class MSEController {
         console.log(this._mediaSource.activeSourceBuffers,"************activeSourceBuffers**************");
         mediaElement.src = this._mediaSourceObjectURL;
     }
-
+    // 清除
     detachMediaElement() {
         if (this._mediaSource) {
             let ms = this._mediaSource;
@@ -174,6 +177,7 @@ class MSEController {
     // data: ArrayBuffer(645) {},
     // mediaDuration: 0,
     // type: "video"}
+    // 初始化媒体信息 MediaSource
     appendInitSegment(initSegment, deferred) {
         console.log(initSegment,"**********appendInitSegment***********");
         if (!this._mediaSource || this._mediaSource.readyState !== 'open') {
@@ -201,7 +205,7 @@ class MSEController {
             if (!this._mimeTypes[is.type]) {  //为null 是为_sourceBuffers中的video和audio第一次创建sourcebuffer
                 firstInitSegment = true;
                 try {
-                    // 创建并绑定事件
+                    // 创建并绑定事件 mimeType = 'video/mp4; codecs="avc1.42E01E, mp4a.40.2"'
                     let sb = this._sourceBuffers[is.type] = this._mediaSource.addSourceBuffer(mimeType);
                     sb.addEventListener('error', this.e.onSourceBufferError);
                     sb.addEventListener('updateend', this.e.onSourceBufferUpdateEnd);
@@ -233,9 +237,34 @@ class MSEController {
             this._updateMediaSourceDuration();
         }
     }
-
+    // 跳转测试
+    _jump(){
+         let sourceBuffers = this._sourceBuffers;
+         let _mediaElement = this._mediaElement;
+         let _mediaSource = this._mediaSource;
+         let rangevideo  = sourceBuffers.video;
+         let rangeaudio  = sourceBuffers.audio;
+         if(rangevideo.buffered.length>0&&rangeaudio.buffered.length>0){
+             let rangevideoend = rangevideo.buffered.end(0);
+             let currentTime = _mediaElement.currentTime;
+             let duration = _mediaSource.duration;
+             if(this.firstDuration&&!rangevideo.updating&&!rangeaudio.updating){
+                 _mediaSource.duration = rangevideoend;
+                 this.firstDuration = false;
+             }
+             if(duration-currentTime>3){
+                 if(!rangevideo.updating&&!rangeaudio.updating){
+                     _mediaSource.duration = rangevideoend;
+                     _mediaElement.currentTime = rangevideoend-1;
+                 }
+             }
+         }
+    }
+    // 保存媒体数据
     appendMediaSegment(mediaSegment) {
-        console.log(mediaSegment,"**********appendMediaSegment***********");
+        // 跳转测试
+        if(!this._mediaElement.paused){this._jump();}
+        // console.log(this._pendingSegments,"**********appendMediaSegment 变量缓存***********");
         let ms = mediaSegment;
         this._pendingSegments[ms.type].push(ms);
 
@@ -348,6 +377,7 @@ class MSEController {
                 let buffered = sb.buffered;
                 if (buffered.length >= 1) {
                     if (currentTime - buffered.start(0) >= this._config.autoCleanupMaxBackwardDuration) {
+                    // if (currentTime - buffered.start(0) >= 40) {
                         return true;
                     }
                 }
@@ -372,8 +402,10 @@ class MSEController {
 
                     if (start <= currentTime && currentTime < end + 3) {  // padding 3 seconds
                         if (currentTime - start >= this._config.autoCleanupMaxBackwardDuration) {
+                        // if (currentTime - start >= 40) {
                             doRemove = true;
                             let removeEnd = currentTime - this._config.autoCleanupMinBackwardDuration;
+                            // let removeEnd = currentTime - 20;
                             this._pendingRemoveRanges[type].push({start: start, end: removeEnd});
                         }
                     } else if (end < currentTime) {
@@ -383,6 +415,7 @@ class MSEController {
                 }
 
                 if (doRemove && !sb.updating) {
+                    console.log("remove",JSON.parse(JSON.stringify(this._pendingRemoveRanges)))
                     this._doRemoveRanges();
                 }
             }
@@ -426,7 +459,7 @@ class MSEController {
 
     _doAppendSegments() {
         let pendingSegments = this._pendingSegments;
-
+        // console.log("_pendingSegments的缓存",JSON.parse(JSON.stringify(this._pendingSegments)));
         for (let type in pendingSegments) {
             if (!this._sourceBuffers[type] || this._sourceBuffers[type].updating) {
                 continue;
@@ -442,6 +475,7 @@ class MSEController {
                     let targetOffset = segment.timestampOffset / 1000;  // in seconds
 
                     let delta = Math.abs(currentOffset - targetOffset);
+                    console.log("currentOffset与帧数据的timestampOffset比较，差值大就取帧数据的实时修正",currentOffset,targetOffset,delta);
                     if (delta > 0.1) {  // If time delta > 100ms
                         Log.v(this.TAG, `Update MPEG audio timestampOffset from ${currentOffset} to ${targetOffset}`);
                         this._sourceBuffers[type].timestampOffset = targetOffset;
@@ -454,9 +488,17 @@ class MSEController {
                     continue;
                 }
 
+                // 打印 获取缓存的时间
+                if(this._sourceBuffers[type].buffered.length>0){
+                    let start = this._sourceBuffers[type].buffered.start(0);
+                    let end = this._sourceBuffers[type].buffered.end(0);
+                    // console.log(`${type} start:${start},end:${end}`);
+                }
+
                 try {
                     this._sourceBuffers[type].appendBuffer(segment.data);
                     this._isBufferFull = false;
+                    
                     if (type === 'video' && segment.hasOwnProperty('info')) {
                         this._idrList.appendArray(segment.info.syncPoints);
                     }
@@ -482,20 +524,27 @@ class MSEController {
                         this._emitter.emit(MSEEvents.ERROR, {code: error.code, msg: error.message});
                     }
                 }
+                // console.log(this._sourceBuffers,"this._sourceBuffers")
             }
         }
+        
     }
 
     _onSourceOpen() {
+        
+        this.firstDuration = true;// 测试添加
+
+        // console.log("*****************_onSourceOpen******************");
         Log.v(this.TAG, 'MediaSource onSourceOpen');
         this._mediaSource.removeEventListener('sourceopen', this.e.onSourceOpen);
         // deferred sourcebuffer creation / initialization
         // 延迟sourcebuffer创建/初始化
-        console.log(this._pendingSourceBufferInit,"*****************_pendingSourceBufferInit******************");
+        // console.log(this._pendingSourceBufferInit,"*****************_pendingSourceBufferInit******************");
         if (this._pendingSourceBufferInit.length > 0) {
             let pendings = this._pendingSourceBufferInit;
             while (pendings.length) {
                 let segment = pendings.shift();
+                // console.log(segment,"+++");
                 this.appendInitSegment(segment, true);
             }
         }
@@ -504,15 +553,18 @@ class MSEController {
         if (this._hasPendingSegments()) {
             this._doAppendSegments();
         }
+        // 通知 flv-player.js SOURCE_OPEN了
         this._emitter.emit(MSEEvents.SOURCE_OPEN);
     }
 
     _onSourceEnded() {
+        // console.log("*******************_onSourceEnded******************")
         // fired on endOfStream
         Log.v(this.TAG, 'MediaSource onSourceEnded');
     }
 
     _onSourceClose() {
+        // console.log("*******************_onSourceClose******************")
         // fired on detaching from media element
         Log.v(this.TAG, 'MediaSource onSourceClose');
         if (this._mediaSource && this.e != null) {
